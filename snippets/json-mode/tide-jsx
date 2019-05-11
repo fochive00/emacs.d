@@ -1,0 +1,14 @@
+# -*- mode: snippet -*-
+# name: tide-jsx
+# key: tide-jsx
+# --
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "allowSyntheticDefaultImports": true,
+    "noEmit": true,
+    "checkJs": true,
+    "jsx": "react",
+    "lib": [ "dom", "es2017" ]
+  }
+}

@@ -1,0 +1,17 @@
+# -*- mode: snippet -*-
+# name: vue-template
+# key: vue-template
+# --
+<template>
+  <div class="$2" >
+  $1
+  </div>
+</template>
+
+<script>
+  $3
+</script>
+
+<style scoped>
+  $4
+</style>

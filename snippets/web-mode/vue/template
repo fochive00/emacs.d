@@ -1,0 +1,19 @@
+# -*- mode: snippet -*-
+# name: vue-template
+# key: vuetemp
+# --
+<template>
+  <div class="$2" >
+  $1
+  </div>
+</template>
+
+<script>
+export default {
+  name: '$3'
+}
+</script>
+
+<style scoped>
+  $4
+</style>

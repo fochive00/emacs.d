@@ -1,0 +1,479 @@
+* TODO nothing
+* Variables and PATH
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'load-path "~/.emacs.d/lisp/")
+
+(add-to-list 'custom-theme-load-path "~/.emacs.d/themes/")
+
+;(setenv "PATH" (concat (getenv "PATH") ":~/.yarn/bin"))
+
+#+END_SRC
+
+* Global key bindings
+
+#+BEGIN_SRC emacs-lisp
+(global-set-key (kbd "C-c j") 'avy-goto-word-or-subword-1)
+
+(global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines)
+(global-set-key (kbd "C->") 'mc/mark-next-like-this)
+(global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
+;(global-set-key (kbd "C-c C-<") 'mc/mark-all-like-this)
+
+(global-set-key (kbd "C-x g") 'magit-status)
+(global-set-key (kbd "C-x M-g") 'magit-dispatch)
+
+;(global-set-key (kbd "C-x C-b") 'ibuffer)
+;(autoload 'ibuffer "ibuffer" "List buffers." t)
+#+END_SRC
+
+* Custom Commands
+
+#+BEGIN_SRC emacs-lisp
+(defun configuration ()
+  (interactive)
+  (find-file "~/.emacs.d/configuration.org"))
+
+(defun setup-tide-mode ()
+  (interactive)
+  (tide-setup)
+  (flycheck-mode +1)
+  (setq flycheck-check-syntax-automatically '(save mode-enabled))
+  (eldoc-mode +1)
+  (tide-hl-identifier-mode +1)
+  ;; company is an optional dependency. You have to
+  ;; install it separately via package-install
+  ;; `M-x package-install [ret] company`
+  (company-mode +1))
+#+END_SRC
+
+* Package management
+
+#+BEGIN_SRC emacs-lisp
+(require 'package)
+(setq package-archives
+'(("gnu" . "http://elpa.emacs-china.org/gnu/")
+	  ("melpa" . "http://elpa.emacs-china.org/melpa/")))
+;; activate installed packages
+(package-initialize)
+(setq package-enable-at-startup nil)
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
+
+;; Can be used to debug slow packages
+;; (setq use-package-minimum-reported-time 0.05
+;;       use-package-verbose t)
+
+(eval-when-compile
+  (require 'use-package))
+
+(use-package cl :ensure t)
+(use-package diminish :ensure t)
+#+END_SRC
+
+* UI
+** Face
+
+#+BEGIN_SRC emacs-lisp
+(when (version<= "26.0.50" emacs-version )
+  (global-display-line-numbers-mode))
+
+(load-theme 'myTheme t)
+(tool-bar-mode 0)
+(menu-bar-mode 0)
+(scroll-bar-mode 0)
+(column-number-mode t)
+(show-paren-mode t)
+(global-hl-line-mode 1)
+(set-face-attribute 'default nil :height 120)
+
+;; Disable the splash screen (to enable it agin, replace the t with 0)
+(setq inhibit-splash-screen t)
+;; Enable transient mark mode
+(transient-mark-mode 1)
+
+(setq initial-scratch-message "* Happy hacking!\n\n ")
+(setq initial-major-mode 'org-mode)
+#+END_SRC
+
+** highlight-indent-guides
+
+;#+BEGIN_SRC emacs-lisp
+(use-package highlight-indent-guides
+  :ensure t
+  :init
+  (add-hook 'prog-mode-hook 'highlight-indent-guides-mode)
+  :config
+  (setq highlight-indent-guides-method 'character)
+  (setq highlight-indent-guides-auto-enabled nil)
+  (set-face-background 'highlight-indent-guides-odd-face "darkgray")
+  (set-face-background 'highlight-indent-guides-even-face "dimgray")
+  (set-face-foreground 'highlight-indent-guides-character-face "dimgray"))
+;#+END_SRC
+
+* Company-mode
+
+#+BEGIN_SRC emacs-lisp
+(use-package company
+  :ensure t
+  ;:diminish company-mode
+  :init
+  (add-hook 'after-init-hook 'global-company-mode)
+  (setq company-dabbrev-downcase nil
+        company-minimum-prefix-length 2
+        company-idle-delay 0.4)
+
+  :config
+  (use-package company-quickhelp 
+    :ensure t
+    :init
+    (company-quickhelp-mode 1)
+    :config 
+    (setq company-quickhelp-delay nil)) 
+    
+  (global-set-key [C-tab] 'company-complete)
+  (eval-after-load "company"
+    '(progn
+       (add-to-list 'company-backends 'company-files)
+       (add-to-list 'company-backends 'company-clang)
+      
+       ;(add-to-list 'company-backends 'company-tern)
+         
+       (setq company-backends (delete 'company-dabbrev company-backends))
+       (define-key company-active-map (kbd "C-p") 'company-select-previous)
+       (define-key company-active-map (kbd "C-n") 'company-select-next)
+       (define-key company-active-map (kbd "TAB") 'company-complete-common-or-cycle)
+       (define-key company-active-map (kbd "C-f") 'company-show-location))))
+#+END_SRC
+
+* lsp-mode
+** lsp
+
+#+BEGIN_SRC emacs-lisp
+(use-package lsp-mode
+  :ensure t
+  :commands lsp
+  :config
+  (use-package company-lsp 
+    :ensure t
+    :commands company-lsp
+    :config
+    (setq company-lsp-enable-snippet t))
+  (add-to-list 'company-backends 'company-lsp)
+  (setq lsp-prefer-flymake nil)
+)
+#+END_SRC
+
+* Programming
+** CC-mode
+
+#+BEGIN_SRC emacs-lisp
+(setq-default c-basic-offset 8
+              tab-width 8
+              indent-tab-mode t)
+
+(setq c-default-style "linux") 
+#+END_SRC
+
+** c++-mode
+
+#+BEGIN_SRC emacs-lisp
+(add-hook 'c++-mode-hook #'lsp)
+#+END_SRC
+
+** python-mode
+
+#+BEGIN_SRC emacs-lisp
+(add-hook 'python-mode-hook #'lsp)
+#+END_SRC
+** geiser
+
+--  [[https://gitlab.com/jaor/geiser][geiser gitlab page]]  --
+
+#+BEGIN_SRC emacs-lisp
+(setq geiser-active-implementations '(chez))
+#+END_SRC
+
+** Web-mode
+
+#+BEGIN_SRC emacs-lisp
+(use-package web-mode
+  :ensure t
+  :init
+  ;(add-to-list 'auto-mode-alist '("\\.phtml\\'" . web-mode))
+  ;(add-to-list 'auto-mode-alist '("\\.tpl\\.php\\'" . web-mode))
+  ;(add-to-list 'auto-mode-alist '("\\.[agj]sp\\'" . web-mode))
+  ;(add-to-list 'auto-mode-alist '("\\.as[cp]x\\'" . web-mode))
+  ;(add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
+  ;(add-to-list 'auto-mode-alist '("\\.mustache\\'" . web-mode))
+  ;(add-to-list 'auto-mode-alist '("\\.djhtml\\'" . web-mode))
+  ;(add-to-list 'auto-mode-alist '("\\.css?\\'" . web-mode))
+  ;(add-to-list 'auto-mode-alist '("\\.scss?\\'" . web-mode))
+  ;(add-to-list 'auto-mode-alist '("\\.xml?\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.vue\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
+  :config
+  (add-hook 'web-mode-hook 'company-mode)
+  (add-hook 'web-mode-hook
+          (lambda ()
+            (when (string-equal "tsx" (file-name-extension buffer-file-name))
+              (setup-tide-mode))))
+
+  ;company-backends
+  (add-to-list 'company-backends 'company-web-html)
+  (add-to-list 'company-backends 'company-css)
+  (add-to-list 'company-backends 'company-web-html)
+
+  (add-to-list 'web-mode-indentation-params '("lineup-args" . nil))
+  (add-to-list 'web-mode-indentation-params '("lineup-calls" . nil))
+  (add-to-list 'web-mode-indentation-params '("lineup-concats" . nil))
+  (add-to-list 'web-mode-indentation-params '("lineup-ternary" . nil))
+  
+  (setq indent-tabs-mode nil)
+  (setq web-mode-style-padding 0)
+  (setq web-mode-script-padding 0)
+  (setq web-mode-block-padding 0)
+  (setq web-mode-comment-style 2)
+  (setq web-mode-markup-indent-offset 2)
+  (setq web-mode-css-indent-offset 2)
+  (setq web-mode-code-indent-offset 2)
+  (setq web-mode-enable-auto-pairing t)
+  (setq web-mode-enable-css-colorization t))
+#+END_SRC
+
+** js2-mode
+
+#+BEGIN_SRC emacs-lisp
+(use-package js2-mode
+  :ensure t)
+#+END_SRC
+
+** js-mode
+
+#+BEGIN_SRC emacs-lisp
+(setq js-indent-level 2)
+;(add-hook 'js-mode-hook #'lsp)
+#+END_SRC
+
+** CSS-mode
+
+#+BEGIN_SRC emacs-lisp
+(setq-default css-indent-offset 2)
+(add-hook 'css-mode-hook #'lsp)
+#+END_SRC
+
+** vue-mode
+
+;#+BEGIN_SRC emacs-lisp
+(use-package vue-mode
+  :ensure t
+  :init
+  :config
+  (add-hook 'vue-mode-hook #'lsp-vue-mmm-enable)
+  (use-package lsp-vue
+    :ensure t
+    :config
+    (add-hook 'major-mode-hook #'lsp-vue-enable)))
+;#+END_SRC
+
+** rjsx-mode
+
+#+BEGIN_SRC emacs-lisp
+(use-package rjsx-mode
+  :ensure t
+  :init
+  (add-to-list 'auto-mode-alist '("\\.js?\\'" . rjsx-mode))
+  ;(add-to-list 'auto-mode-alist '("components\\/.*\\.js\\'" . rjsx-mode))
+  :config
+  (add-hook 'rjsx-mode-hook #'setup-tide-mode)
+  (add-hook 'rjsx-mode-hook
+          (lambda ()
+            (when (string-equal "jsx" (file-name-extension buffer-file-name))
+              (setup-tide-mode))))
+  (define-key rjsx-mode-map "<" nil)
+  (define-key rjsx-mode-map (kbd "C-d") nil)
+  (define-key rjsx-mode-map ">" nil)
+  (setq indent-tabs-mode nil)
+)
+#+END_SRC
+
+** json-mode
+
+#+BEGIN_SRC emacs-lisp
+(use-package json-mode
+  :ensure t)
+#+END_SRC
+
+* Tools
+** avy
+
+#+BEGIN_SRC emacs-lisp
+(use-package avy
+  :ensure t)
+#+END_SRC
+
+** multiple-cursors
+
+#+BEGIN_SRC emacs-lisp
+(use-package multiple-cursors
+  :ensure t)
+#+END_SRC
+** tide
+#+BEGIN_SRC emacs-lisp
+(use-package tide
+  :ensure t
+  :after (typescript-mode company flycheck)
+  :hook ((typescript-mode . tide-setup)
+         (typescript-mode . tide-hl-identifier-mode)
+         (before-save . tide-format-before-save)))
+#+END_SRC
+
+** flycheck
+
+#+BEGIN_SRC emacs-lisp
+(use-package flycheck
+  :ensure t
+  :init (global-flycheck-mode)
+  :config
+  (setq-default flycheck-disabled-checkers
+  		(append flycheck-disabled-checkers
+  			'(javascript-jshint)))
+  
+  (flycheck-add-mode 'typescript-tslint 'web-mode)
+  (flycheck-add-mode 'css-csslint 'web-mode)
+  (flycheck-add-mode 'javascript-eslint 'web-mode)
+  (flycheck-add-mode 'css-csslint 'rjsx-mode)
+  (flycheck-add-mode 'javascript-eslint 'rjsx-mode)
+
+  ;; Something is wrong here!
+  ;(flycheck-add-next-checker 'javascript-eslint 'jsx-tide 'append)
+  )
+#+END_SRC
+
+** engine-mode
+
+#+BEGIN_SRC emacs-lisp
+(use-package engine-mode
+  :ensure t
+  :bind-keymap ("C-x /" . engine-mode-map)
+  :config
+  (engine-mode t)
+  
+  (defengine yandex
+    "https://yandex.com/search/?text=%s"
+    :keybinding "y")
+  
+  (defengine github
+    "https://github.com/search?q=%s"
+    :keybinding "c")
+
+  (defengine duckduckgo
+    "https://duckduckgo.com/?q=%s"
+    :keybinding "d")
+
+  (defengine stackoverflow
+    "https://stackoverflow.com/search?q=%s"
+    :keybinding "s")
+  (defengine rfcs
+    "http://pretty-rfc.herokuapp.com/search?q=%s"
+    :keybinding "r")
+
+  (defengine wikipedia
+    "http://www.wikipedia.org/search-redirect.php?language=en&go=Go&search=%s"
+    :keybinding "w"))
+
+#+END_SRC
+  (defengine 
+    "https://.com/search?q=%s"
+    :keybinding "c")
+
+** magit
+
+#+BEGIN_SRC emacs-lisp
+(use-package magit
+  :ensure t)
+#+END_SRC
+
+** awesome-tab
+
+--  [[https://github.com/manateelazycat/awesome-tab][awesome-tab github page]]  --
+
+;#+BEGIN_SRC emacs-lisp
+(use-package awesome-tab
+  :config
+  (awesome-tab-mode t))
+;#+END_SRC
+
+** yasnippet
+
+--  [[http://joaotavora.github.io/yasnippet/][YASnippet Documentation]]  --
+#+BEGIN_SRC emacs-lisp
+(use-package yasnippet
+  :ensure t
+  :init
+  (yas-global-mode 1)
+  (setq yas-snippet-dirs
+        '("~/.emacs.d/snippets"))
+)
+#+END_SRC
+
+* helm
+
+--  [[https://github.com/emacs-helm/helm/wiki][Helm Wiki]]  --
+
+#+BEGIN_SRC emacs-lisp
+(use-package helm
+  :ensure t
+  :diminish helm-mode
+  :init
+  (helm-mode 1)
+  :config
+  (global-set-key (kbd "M-x") #'helm-M-x)
+  (global-set-key (kbd "C-x r b") #'helm-filtered-bookmarks)
+  (global-set-key (kbd "C-x C-f") #'helm-find-files))
+
+#+END_SRC
+
+* Org-mode
+
+--  [[https://orgmode.org/org.html][The Org Manual]] --
+
+#+BEGIN_SRC emacs-lisp
+(use-package org
+  :ensure t
+  :config
+  (use-package org-bullets
+    :ensure t
+    :config
+    (add-hook 'org-mode-hook 'org-bullets-mode))
+  (use-package htmlize
+    :ensure t)
+)
+
+#+END_SRC
+
+* Setup
+** Global setup
+
+#+BEGIN_SRC emacs-lisp
+(setq custom-file "~/.emacs.d/custom.el")
+
+(setq make-backup-files nil)
+#+END_SRC
+
+** Session
+
+;#+BEGIN_SRC emacs-lisp
+(use-package session
+  :ensure t
+  :init
+  (add-hook 'after-init-hook 'session-initialize)
+  (load "desktop")
+  (desktop-load-default)
+  (desktop-read))
+;#+END_SRC
+* Other Links
+[[http://ergoemacs.org][ErgoEmacs]]
+
+
