@@ -1,5 +1,6 @@
-.git
 elpa/
 configuration.el
 transient/
 auto-save-list/
+.cache/
+.mc-lists.el
