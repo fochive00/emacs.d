@@ -1,5 +1,4 @@
-#+STARTUP: indent
-
+*** config
 * Path
 #+begin_src emacs-lisp
   (add-to-list 'load-path "~/.emacs.d/lisp/")
@@ -30,27 +29,26 @@
 #+end_src
 * UI
 ** Based UI
-
 #+begin_src emacs-lisp
-(when (version<= "26.0.50" emacs-version )
-  (global-display-line-numbers-mode))
+  (when (version<= "26.0.50" emacs-version )
+    (global-display-line-numbers-mode))
 
-(load-theme 'myTheme t)
-(tool-bar-mode 0)
-(menu-bar-mode 0)
-(scroll-bar-mode 0)
-(column-number-mode t)
-(show-paren-mode t)
-(global-hl-line-mode 1)
-(set-face-attribute 'default nil :height 120)
+  (load-theme 'myTheme t)
+  (tool-bar-mode 0)
+  (menu-bar-mode 0)
+  (scroll-bar-mode 0)
+  (column-number-mode t)
+  (show-paren-mode t)
+  (global-hl-line-mode 1)
+  (set-face-attribute 'default nil :height 120)
 
-;; Disable the splash screen (to enable it agin, replace the t with 0)
-(setq inhibit-splash-screen t)
-;; Enable transient mark mode
-(transient-mark-mode 1)
+  ;; Disable the splash screen (to enable it agin, replace the t with 0)
+  (setq inhibit-splash-screen t)
+  ;; Enable transient mark mode
+  (transient-mark-mode 1)
 
-(setq initial-scratch-message "* Happy hacking!\n\n ")
-(setq initial-major-mode 'org-mode)
+  (setq initial-scratch-message "* Happy hacking!\n\n")
+  (setq initial-major-mode 'org-mode)
 #+end_src
 
 ** highlight-indent-guides
@@ -69,9 +67,7 @@
 ;#+end_src
 
 * Org-mode
-
---  [[https://orgmode.org/org.html][The Org Manual]] --
-
+** Org-mode
 #+begin_src emacs-lisp
   (use-package org
     :ensure org-plus-contrib
@@ -83,33 +79,87 @@
     (use-package htmlize
       :ensure t)
     (org-babel-do-load-languages
-        'org-babel-load-languages
-        '((emacs-lisp . t)
-          (latex . t)))
+     'org-babel-load-languages
+     '((emacs-lisp . t)
+       (latex . t)))
 
-    ;; 使用xelatex一步生成PDF，不是org-latex-to-pdf-process这个命令
+    ;; use xelatex to generate PDF，not command org-latex-to-pdf-process
     (setq org-latex-pdf-process
-          '(
-            "xelatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-            "xelatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-            "xelatex -shell-escape -interaction nonstopmode -output-directory %o %f"
-            "rm -fr %b.out %b.log %b.tex auto"
-            ))
-    ;; 设置默认后端为 `xelatex'
+	  '(
+	    "xelatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+	    "xelatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+	    "xelatex -shell-escape -interaction nonstopmode -output-directory %o %f"
+	    "rm -fr %b.out %b.log %b.tex auto"
+	    ))
     (setq org-latex-compiler "xelatex")
 
-    (setq org-todo-keywords
-      '((sequence "TODO(t)" "|" "DONE(d)")
-        (sequence "REPORT(r)" "BUG(b)" "KNOWNCAUSE(k)" "|" "FIXED(f)")
-        (sequence "|" "CANCELED(c)")))
-    (setq org-tag-alist '(("@work" . ?w) ("@home" . ?h) ("laptop" . ?l)))
-    (setq org-default-notes-file (concat org-directory "/notes.org"))
+    ;; config
     (setq org-startup-folded t)
-    
+    (setq org-enforce-todo-dependencies t)
+    (setq org-directory "~/org")
+    (setq org-default-notes-file (concat org-directory "/notes.org"))
+    (setq org-agenda-files (concat org-directory "/gtd/organized.org"))
+
+    ;;(setq org-todo-keywords
+    ;;  '((sequence "TODO(t)" "|" "DONE(d)")
+    ;;    (sequence "REPORT(r)" "BUG(b)" "KNOWNCAUSE(k)" "|" "FIXED(f)")
+    ;;    (sequence "|" "CANCELED(c)")))
+    ;; (setq org-tag-alist '(("@work" . ?w) ("@home" . ?h) ("laptop" . ?l)))
+
+    ;; GTD
+    ;; capture
+    (setq org-capture-templates
+      '(("t" "Todo" entry (file "~/org/gtd/new-todos.org")
+	 "* TODO %?\n  %i\n  %a")
+	("i" "Idea" entry (file "~/org/gtd/ideas.org")
+	 "* %?\n %i\n %a")
+	("j" "Journal" entry (file+datetree "~/org/gtd/journal.org")
+	 "* %?\nEntered on %U\n  %i\n  %a")
+	))
+
+    ;; clarify and organize
+    ;; (setq org-refile-allow-creating-parent-nodes 'confirm)
+    (setq org-refile-targets
+	  '(("organized.org" :maxlevel . 1)
+	    ("trash.org" :maxlevel . 1)))
+
+    ;; reflect
+    ;; engage
   )
-
 #+end_src
+** Org-roam
+#+begin_src elisp
+  (use-package org-roam
+	:ensure t
+	:hook
+	(after-init . org-roam-mode)
+	:custom
+	(org-roam-directory (concat org-directory "/roam"))
+	:bind
+	(:map org-roam-mode-map
+	      (("C-c n l" . org-roam)
+	       ("C-c n f" . org-roam-find-file)
+	       ("C-c n g" . org-roam-graph))
+	      :map org-mode-map
+	      (("C-c n i" . org-roam-insert))
+	      (("C-c n I" . org-roam-insert-immediate)))
+	:config
+	(if (executable-find "sqlite3") t '(can find sqlite3))
+	(setq org-roam-capture-templates
+	      '(("d" "default" plain (function org-roam-capture--get-point)
+		 "%?"
+		 :file-name "%(format-time-string \"%Y-%m-%d--%H-%M-%SZ--${slug}\" (current-time) t)"
+		 :head "#+title: ${title}\n"
+		 :unnarrowed t)
+		))
+	)
+#+end_src
+** Links
+-- [[https://orgmode.org/org.html][The Org Manual]] --
 
+-- [[https://orgmode.org/manual/Capture-templates.html][Capture Template]] --
+
+-- [[https://www.orgroam.com/manual.html][Org-roam Manual]] --
 * Tools
 ** Company-mode
 #+begin_src emacs-lisp
